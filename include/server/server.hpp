@@ -48,7 +48,7 @@ public:
   bool start();
   void stop();
   bool is_running() const { return running_; }
-
+  
 private:
   std::map<int, sockaddr_in> socket_table{};
   Config config_;
