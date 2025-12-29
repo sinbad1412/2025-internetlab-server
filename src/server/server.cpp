@@ -152,7 +152,16 @@ bool TcpServer::start() {
     // 创建线程处理客户端
     client_threads_.emplace_back(client_thread_proc, this, client_socket,
                                  client_addr);
-    socket_table.insert({client_socket,client_addr});
+    socket_table.insert({client_socket, client_addr});
+
+    for (auto t = client_threads_.begin(); t != client_threads_.end(); ) {
+      if (t->joinable()) {
+        t->join();
+        t = client_threads_.erase(t);
+      } else {
+        t++;
+      }
+    }
   }
   return true;
 }
@@ -196,13 +205,10 @@ void TcpServer::handle_client(int client_socket,
   segreceiver receiver;
   receiver.read_socket(client_socket);
   sender.read_socket(client_socket);
-  std::cout << "table has" << socket_table.size() << socket_table.begin()->first
-            << endl;
-  std::cout << client_socket<<endl;
   try {
     // 发送欢迎消息
     const std::string message = "Hello from server! You have connected to me!";
-    vector<uint8_t> mes=sender.stringtoint(message);
+    vector<uint8_t> mes = sender.stringtoint(message);
     sender._send(mes, 0x82);
     mes.clear();
     sender._send(mes, 0x81);
@@ -218,49 +224,52 @@ void TcpServer::handle_client(int client_socket,
       if (receiver.get_msg() == 0x01) {
         mes.clear();
         sender._send(mes, 0x81);
-      }
-      if (receiver.get_msg() == 0x02) {
-        mes=sender.stringtoint(name);
+      } else if (receiver.get_msg() == 0x02) {
+        mes = sender.stringtoint(name);
         sender._send(mes, 0x82);
-      }
-      if (receiver.get_msg() == 0x03) {
+      } else if (receiver.get_msg() == 0x03) {
         mes.clear();
         uint16_t len = socket_table.size();
         mes.push_back(static_cast<uint8_t>((len >> 8) & 0xFF));
         mes.push_back(static_cast<uint8_t>((len) & 0xFF));
-        for (auto it=socket_table.begin(); it!=socket_table.end(); it++) {
-          uint32_t id=static_cast<uint32_t>(it->first);
-          uint32_t ip=it->second.sin_addr.s_addr;
-          uint16_t port =it->second.sin_port;
+        for (auto it = socket_table.begin(); it != socket_table.end(); it++) {
+          uint32_t id = static_cast<uint32_t>(it->first);
+          uint32_t ip = it->second.sin_addr.s_addr;
+          uint16_t port = it->second.sin_port;
           mes.push_back(static_cast<uint8_t>((id >> 24) & 0xFF));
           mes.push_back(static_cast<uint8_t>((id >> 16) & 0xFF));
           mes.push_back(static_cast<uint8_t>((id >> 8) & 0xFF));
-          mes.push_back(static_cast<uint8_t>((id ) & 0xFF));
+          mes.push_back(static_cast<uint8_t>((id) & 0xFF));
           mes.push_back(static_cast<uint8_t>((ip >> 24) & 0xFF));
           mes.push_back(static_cast<uint8_t>((ip >> 16) & 0xFF));
           mes.push_back(static_cast<uint8_t>((ip >> 8) & 0xFF));
-          mes.push_back(static_cast<uint8_t>((ip ) & 0xFF));
-          mes.push_back(static_cast<uint8_t>((port >>8) & 0xFF));
+          mes.push_back(static_cast<uint8_t>((ip) & 0xFF));
+          mes.push_back(static_cast<uint8_t>((port >> 8) & 0xFF));
           mes.push_back(static_cast<uint8_t>((port) & 0xFF));
-          
-        }sender._send(mes, 0x83);
-      }
-      if (receiver.get_msg() == 0x04) {
+        }
+        sender._send(mes, 0x83);
+      } else if (receiver.get_msg() == 0x04) {
         sender.read_socket(receiver.getsocket());
         mes.push_back(static_cast<uint8_t>((client_socket >> 24) & 0xFF));
         mes.push_back(static_cast<uint8_t>((client_socket >> 16) & 0xFF));
         mes.push_back(static_cast<uint8_t>((client_socket >> 8) & 0xFF));
         mes.push_back(static_cast<uint8_t>((client_socket) & 0xFF));
-        vector<uint8_t> load=receiver.getload();
+        vector<uint8_t> load = receiver.getload();
         uint16_t len = load.size();
         mes.push_back(static_cast<uint8_t>((len >> 8) & 0xFF));
         mes.push_back(static_cast<uint8_t>((len) & 0xFF));
-        mes.insert(mes.end(),load.begin(),load.end());
+        mes.insert(mes.end(), load.begin(), load.end());
         sender._send(mes, 0x84);
         sender.read_socket(client_socket);
+      } else {
+        string str;
+        vector<uint8_t> s = receiver.getload();
+        for (size_t i = 0; i < s.size(); i++) {
+          str += static_cast<char>(s[i]);
+        }
+        logger::info("来自客户端的信息:" + str);
       }
     }
-    
 
     // 这里可以添加更多的客户端处理逻辑
     // 例如：接收客户端数据、处理请求等
@@ -278,7 +287,6 @@ void TcpServer::handle_client(int client_socket,
 void TcpServer::client_thread_proc(TcpServer *server, int client_socket,
                                    sockaddr_in client_addr) {
   server->handle_client(client_socket, client_addr);
-  
 }
 
 } // namespace server

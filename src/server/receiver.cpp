@@ -8,7 +8,6 @@
 int segreceiver::rec() {
   buffer.resize(1024);
   int sig = recv(_socket, buffer.data(), 1024, 0);
-  std::cout<<"rec"<<sig<<endl;
   if (sig >= 1) {
     load.clear();
     msg = buffer[0];
