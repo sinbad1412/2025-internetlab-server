@@ -154,14 +154,14 @@ bool TcpServer::start() {
                                  client_addr);
     socket_table.insert({client_socket, client_addr});
 
-    for (auto t = client_threads_.begin(); t != client_threads_.end(); ) {
-      if (t->joinable()) {
-        t->join();
-        t = client_threads_.erase(t);
-      } else {
-        t++;
-      }
-    }
+    // for (auto t = client_threads_.begin(); t != client_threads_.end(); ) {
+    //   if (t->joinable()) {
+    //     t->join();
+    //     t = client_threads_.erase(t);
+    //   } else {
+    //     t++;
+    //   }
+    // }
   }
   return true;
 }
@@ -280,6 +280,7 @@ void TcpServer::handle_client(int client_socket,
   }
 
   // 关闭客户端连接
+  socket_table.erase(client_socket);
   close(client_socket);
   logger::info("Client disconnected: " + client_info);
 }
