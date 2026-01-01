@@ -6,8 +6,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
-
 # 可执行文件
 add_executable(${PROJECT_NAME}
     app/main.cpp
@@ -16,7 +14,6 @@ add_executable(${PROJECT_NAME}
     src/server/receiver.cpp
     src/helper/segment.cpp
     src/helper/segment_header.cpp
-    
 )
 
 # 包含目录
