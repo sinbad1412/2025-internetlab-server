@@ -244,8 +244,9 @@ void TcpServer::handle_client(int client_socket,
           mes.push_back(static_cast<uint8_t>((ip >> 16) & 0xFF));
           mes.push_back(static_cast<uint8_t>((ip >> 8) & 0xFF));
           mes.push_back(static_cast<uint8_t>((ip) & 0xFF));
-          mes.push_back(static_cast<uint8_t>((port >> 8) & 0xFF));
           mes.push_back(static_cast<uint8_t>((port) & 0xFF));
+          mes.push_back(static_cast<uint8_t>((port >> 8) & 0xFF));
+          
         }
         sender._send(mes, 0x83);
       } else if (receiver.get_msg() == 0x04) {
