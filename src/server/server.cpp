@@ -15,7 +15,7 @@
 
 namespace server {
 
-#define name "Masai"
+#define name "浙江大学计算机网络实验服务端3024 "
 
 // net_utils实现要放在前面
 namespace net_utils {
@@ -71,14 +71,14 @@ TcpServer &TcpServer::operator=(TcpServer &&other) noexcept {
 
 bool TcpServer::start() {
   if (running_) {
-    logger::warning("Server is already running");
+    logger::warning("服务器已经在运行");
     return false;
   }
 
   // 创建socket
   server_socket_ = socket(AF_INET, SOCK_STREAM, 0);
   if (server_socket_ < 0) {
-    logger::error("Failed to create socket: " + std::string(strerror(errno)));
+    logger::error("创建socket失败: " + std::string(strerror(errno)));
     return false;
   }
 
@@ -101,7 +101,7 @@ bool TcpServer::start() {
   } else {
     if (inet_pton(AF_INET, config_.bind_address.c_str(),
                   &server_addr.sin_addr) <= 0) {
-      logger::error("Invalid bind address: " + config_.bind_address);
+      logger::error("无效地址: " + config_.bind_address);
       close(server_socket_);
       server_socket_ = -1;
       return false;
@@ -110,7 +110,7 @@ bool TcpServer::start() {
 
   if (bind(server_socket_, reinterpret_cast<struct sockaddr *>(&server_addr),
            sizeof(server_addr)) < 0) {
-    logger::error("Failed to bind to port " + std::to_string(config_.port) +
+    logger::error("端口配对失败： " + std::to_string(config_.port) +
                   ": " + std::string(strerror(errno)));
     close(server_socket_);
     server_socket_ = -1;
@@ -119,14 +119,14 @@ bool TcpServer::start() {
 
   // 开始监听
   if (listen(server_socket_, config_.max_queue_size) < 0) {
-    logger::error("Failed to listen: " + std::string(strerror(errno)));
+    logger::error("监听失败: " + std::string(strerror(errno)));
     close(server_socket_);
     server_socket_ = -1;
     return false;
   }
 
   running_ = true;
-  logger::info("Server started on port " + std::to_string(config_.port) +
+  logger::info("服务开始在端口 " + std::to_string(config_.port) +
                " (bind address: " + config_.bind_address + ")");
 
   // 接受客户端连接
@@ -140,13 +140,13 @@ bool TcpServer::start() {
 
     if (client_socket < 0) {
       if (running_) {
-        logger::error("Accept failed: " + std::string(strerror(errno)));
+        logger::error("连接失败: " + std::string(strerror(errno)));
       }
       continue;
     }
 
     // 记录客户端连接
-    logger::info("Client connected: " +
+    logger::info("客户端已连接: " +
                  net_utils::get_client_info(client_addr));
 
     // 创建线程处理客户端
@@ -188,7 +188,7 @@ void TcpServer::stop() {
   }
   client_threads_.clear();
 
-  logger::info("Server stopped");
+  logger::info("服务端停止");
 }
 
 void TcpServer::cleanup() {
@@ -207,7 +207,7 @@ void TcpServer::handle_client(int client_socket,
   sender.read_socket(client_socket);
   try {
     // 发送欢迎消息
-    const std::string message = "Hello from server! You have connected to me!";
+    const std::string message = "你好，这里是服务器，你已经成功连接";
     vector<uint8_t> mes = sender.stringtoint(message);
     sender._send(mes, 0x82);
     mes.clear();
@@ -222,12 +222,17 @@ void TcpServer::handle_client(int client_socket,
       }
       while (!receiver.getbuffer().empty()) {
         receiver.readbuffer();
-        //读取缓存区内的一条消息
+        // 读取缓存区内的一条消息
+        if (receiver.get_msg() == 0) {
+          break;
+        }
+        logger::info("收到一条客户端请求，类型为：" + std::to_string(receiver.get_msg()));
+        
         if (receiver.get_msg() == 0x01) {
           mes.clear();
           sender._send(mes, 0x81);
           time_count += 1;
-          std::cout<<"time requset recv:"<<time_count<<endl;
+         // std::cout<<"time requset recv:"<<time_count<<endl;
       } else if (receiver.get_msg() == 0x02) {
           mes = sender.stringtoint(name);                                              
           sender._send(mes, 0x82);
@@ -267,9 +272,7 @@ void TcpServer::handle_client(int client_socket,
             sender._send(mes, 0x84);
             sender.read_socket(client_socket); // 恢复原来的客户端
 
-        } else {
-          break;
-          }
+        } 
         }
     }
 
@@ -277,14 +280,14 @@ void TcpServer::handle_client(int client_socket,
     // 例如：接收客户端数据、处理请求等
 
   } catch (const std::exception &e) {
-    logger::error("Exception while handling client " + client_info + ": " +
+    logger::error("处理该客户端时出错： " + client_info + ": " +
                   e.what());
   }
 
   // 关闭客户端连接
   socket_table.erase(client_socket);
   close(client_socket);
-  logger::info("Client disconnected: " + client_info);
+  logger::info("连接断开: " + client_info);
 }
 
 void TcpServer::client_thread_proc(TcpServer *server, int client_socket,

@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
   std::signal(SIGINT, signal_handler);
   std::signal(SIGTERM, signal_handler);
 
-  server::logger::info("Starting TCP server...");
+  server::logger::info("启动服务器");
 
   try {
     // 配置服务器
@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
     // 在后台运行服务器
     std::thread server_thread([&server]() {
       if (!server.start()) {
-        server::logger::error("Failed to start server");
+        server::logger::error("服务器启动失败");
         g_running = false;
       }
     });
@@ -43,14 +43,14 @@ int main(int argc, char *argv[]) {
     }
 
     // 停止服务器
-    server::logger::info("Stopping server...");
+    server::logger::info("服务器停止");
     server.stop();
 
     if (server_thread.joinable()) {
       server_thread.join();
     }
 
-    server::logger::info("Server shutdown completed");
+    server::logger::info("关闭连接");
 
   } catch (const std::exception &e) {
     server::logger::error("Fatal error: " + std::string(e.what()));
